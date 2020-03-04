@@ -43,7 +43,10 @@ def merge(cal1, cal2):
           
         for vevent in cal1.walk("VEVENT"):
           if isSame(vevent, uid, rid):
-            cal3.add_component(copy.deepcopy(component))
+            if component["SEQUENCE"]>vevent["SEQUENCE"]:
+              cal3.add_component(copy.deepcopy(component))
+            else:
+              cal3.add_component(copy.deepcopy(vevent))
             merged=True
           else:
             cal3.add_component(copy.deepcopy(vevent))

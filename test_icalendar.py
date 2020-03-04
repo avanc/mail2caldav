@@ -153,5 +153,22 @@ class TestMergeRepeatingEvent(unittest.TestCase):
     self.assertIsNone(cal_result)
 
 
+
+class TestRandomSequence(unittest.TestCase):
+  
+  def test_sequence_changed(self):
+    cal_init=loadCal("test_data/02-03-Result.ics")
+    cal_update1=loadCal("test_data/02-05-RepeatingEventUpdateSingleSummary.ics")
+    cal_update2=loadCal("test_data/02-04-RepeatingEventUpdateSingleLocation.ics")
+    cal_expected=loadCal("test_data/02-05-Result.ics")
+    
+    cal_result=ical_tools.merge(cal_init, cal_update1);
+    cal_result=ical_tools.merge(cal_result, cal_update2);
+    
+    self.maxDiff=None
+    self.assertEqual(cal_expected.to_ical().decode("utf-8"), cal_result.to_ical().decode("utf-8"))
+
+
+
 if __name__ == '__main__':
   unittest.main()
