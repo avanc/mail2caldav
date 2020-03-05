@@ -10,6 +10,7 @@ import unittest
 
 from m2c import ical_tools
 from m2c import error
+import icalendar
 
 def loadCal(filename):
     f=open(filename)
@@ -167,6 +168,15 @@ class TestRandomSequence(unittest.TestCase):
     
     self.maxDiff=None
     self.assertEqual(cal_expected.to_ical().decode("utf-8"), cal_result.to_ical().decode("utf-8"))
+
+
+class TestHelpers(unittest.TestCase):
+  
+  def test_getUid(self):
+    cal_init=loadCal("test_data/02-03-Result.ics")
+    
+    uid=ical_tools.getUid(cal_init);
+    self.assertEqual(uid, icalendar.prop.vText("040000008200E00074C5B7101A82E0080000000090C7403159F1D501000000000000000010000000C1DA4CA703FC8F4386A31D013E0E7274"))
 
 
 

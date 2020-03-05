@@ -120,6 +120,21 @@ def isSame(vevent, uid, recurrence_id=None):
   return result
 
 
+def getUid(cal):
+  uid=None
+  for vevent in cal.walk("VEVENT"):
+    print(vevent["UID"])
+    if uid:
+      if uid != vevent["UID"]:
+        raise MergeFailedError("Calendar contains different UIDs", cal.to_ical())
+    else:
+      uid=vevent["UID"]
+    
+    if uid is None:
+      raise MergeFailedError("Calendar contains no UID", cal.to_ical())
+
+  return uid
+
 
 def findEventByUID(cal, uid, recurrence_id=None):
   result=None;
