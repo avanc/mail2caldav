@@ -15,15 +15,19 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 # MA  02110-1301, USA.
 
-class MergeFailedError(Exception):
-  """Exception raised if merge failed.
-  Attributes:
-      errormessage -- errormessage
-  """
 
-  def __init__(self, message, ics):
-      self.message = message
-      self.ics=ics
-      
-  def __str__(self):
-      return "{message} for {ics}".format(message=self.message, ics=self.ics.decode("utf-8"))
+import json
+import os.path
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+def parseConfig(jsonstring):
+    data=json.loads(jsonstring)
+    return data
+
+def readConfig(filename):
+    fp=open(os.path.expanduser(filename))
+    data=json.load(fp)
+    return data

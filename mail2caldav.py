@@ -1,0 +1,72 @@
+#! /usr/bin/env python
+
+# Copyright (C) 2020 Sven Klomp (mail@klomp.eu)
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+# MA  02110-1301, USA.
+
+
+import logging
+logger = logging.getLogger("mail2caldav")
+
+from m2c.imap import MailFetcher
+from m2c import ical_tools
+
+from m2c import parameter
+from m2c import config
+
+import caldav
+
+
+if __name__ == '__main__':
+  options = parameter.parse()
+  configdata=config.readConfig(options.configfile)
+  
+
+  client = caldav.DAVClient(configdata["caldav"]["url"], username=configdata["caldav"]["username"], password=configdata["caldav"]["password"])
+  calendar = caldav.objects.Calendar(client=client, url=configdata["caldav"]["calendar"])
+
+  mailfetcher=MailFetcher(configdata["imap"]["url"], configdata["imap"]["username"], configdata["imap"]["password"], "INBOX", "INBOX.M2C.Archive", "INBOX.M2C.Error")
+  ics=mailfetcher.getIcs()
+
+  for (mail_uid, cal_update) in ics:
+    logger.debug("Processing mail with ID {id}".format(id=mail_uid))
+    event=None;
+    cal_base=None
+    uid=ical_tools.getUid(cal_update)
+    try:
+      event=calendar.event_by_uid(uid)
+      cal_base=ical_tools.parse(event.data)
+      logger.debug("Event with UID {uid} found.".format(uid=uid))
+    except caldav.lib.error.NotFoundError:
+      logger.info("Event with UID {uid} not found.".format(uid=uid))
+      event=calendar.add_event(None)
+      event.id="m2c_{uid}".format(uid=uid)
+    
+    ical_result=ical_tools.merge(cal_base, cal_update);
+    
+    if ical_result is not None:
+      logger.debug("Saving changes for UID {uid}".format(uid=uid))
+      logger.debug(ical_result.to_ical().decode("utf-8"))
+      event.data=ical_result.to_ical().decode("utf-8")
+      if not options.dryrun:
+        event.save()
+    else:
+      logger.debug("Deleting UID {uid}".format(uid=uid))
+      if not options.dryrun:
+        event.delete()
+    
+    if not options.dryrun:
+      mailfetcher.archiveMessage(mail_uid);
