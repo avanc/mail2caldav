@@ -8,6 +8,8 @@ logger = logging.getLogger()
 
 import unittest
 
+import sys
+sys.path.insert(1, '../src')
 from m2c import ical_tools
 from m2c import error
 import icalendar
