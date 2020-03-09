@@ -76,6 +76,9 @@ def merge(cal1, cal2):
   
   elif cal2["METHOD"]=="CANCEL":
     vevent=cal2.walk("VEVENT")[0]
+    if cal1 is None:
+      logger.info("Try to cancel non-existent event with UID {uid}".format(uid=vevent["UID"]))
+      return None
     if vevent.has_key("RECURRENCE-ID"):
       uid=vevent["UID"]
       rid=vevent["RECURRENCE-ID"]

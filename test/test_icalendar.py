@@ -156,6 +156,13 @@ class TestMergeRepeatingEvent(unittest.TestCase):
     self.assertIsNone(cal_result)
 
 
+  def test_remove_nonexisting_single_event(self):
+    cal_init=None
+    cal_update=loadCal("test_data/02-03-RepeatingEventCancelSingle.ics")
+    
+    cal_result=ical_tools.merge(cal_init, cal_update);
+    self.assertIsNone(cal_result)
+
 
 class TestRandomSequence(unittest.TestCase):
   
