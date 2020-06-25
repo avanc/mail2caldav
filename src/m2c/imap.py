@@ -43,24 +43,29 @@ class MailFetcher(object):
       self.server.create_folder(self.folder_error)
       logger.info("Error folder '{folder}' created.".format(folder=self.folder_error))
 
+
+  def findIcs(self, rawmail):
+    email_message = email.message_from_bytes(rawmail)
+    for part in email_message.walk():
+      logger.debug(part.get_content_type())
+      if ("text/calendar" in part.get_content_type()):
+        logger.info("Found calendar event in mail from {sender} with subject '{subject}'.".format(sender=email_message.get('From'), subject=email_message.get('Subject')))
+        
+        return ical_tools.parse(part.get_payload(decode=True))
     
   def getIcs(self):
     select_info = self.server.select_folder(self.folder_inbox)
     logger.debug("{num_mails} messages in folder {folder}.".format(num_mails=select_info[b'EXISTS'], folder=self.folder_inbox))
     
-    ics=[];
+    ics_list=[];
     
     messages = self.server.search('ALL')
     for message_uid, message_data in self.server.fetch(messages, 'RFC822').items():
-      logger.debug(message_uid)
-      email_message = email.message_from_bytes(message_data[b'RFC822'])
-      if email_message.is_multipart():
-        for part in email_message.walk():
-            ctype = part.get_content_type()
-            if ctype in ['text/calendar']:
-              logger.info("Found calendar event in mail from {sender} with subject '{subject}'.".format(sender=email_message.get('From'), subject=email_message.get('Subject')))
-              ics.append((message_uid, ical_tools.parse(part.get_payload(decode=True))))
-    return ics
+      logger.debug("Found message with id {id}".format(id=message_uid))
+      ics = self.findIcs(message_data[b'RFC822'])
+      if (ics):
+        ics_list.append((message_uid, ics))
+    return ics_list
 
 
 
