@@ -20,6 +20,7 @@
 
 import logging
 logger = logging.getLogger("mail2caldav")
+from datetime import datetime, timedelta
 
 from m2c.imap import MailFetcher
 from m2c import ical_tools
@@ -33,12 +34,17 @@ import caldav
 if __name__ == '__main__':
   options = parameter.parse()
   configdata=config.readConfig(options.configfile)
-  
+
 
   client = caldav.DAVClient(configdata["caldav"]["url"], username=configdata["caldav"]["username"], password=configdata["caldav"]["password"])
   calendar = caldav.objects.Calendar(client=client, url=configdata["caldav"]["calendar"])
-
-  mailfetcher=MailFetcher(configdata["imap"]["url"], configdata["imap"]["username"], configdata["imap"]["password"], "INBOX", "INBOX.M2C.Archive", "INBOX.M2C.Error")
+  if options.scan_depth == 'ALL':
+    scan_depth = options.scan_depth
+  else:
+    from_date = (datetime.now() - timedelta(days=int(options.scan_depth))).strftime('%d-%b-%Y')
+    scan_depth = f'SINCE "{from_date}"'
+  logger.info("Depth of mailbox' scan: {scan_depth}".format(scan_depth=scan_depth))
+  mailfetcher=MailFetcher(configdata["imap"]["url"], configdata["imap"]["username"], configdata["imap"]["password"], "INBOX", "INBOX.M2C.Archive", "INBOX.M2C.Error", scan_depth)
   ics=mailfetcher.getIcs()
 
   for (mail_uid, cal_update) in ics:
@@ -54,9 +60,9 @@ if __name__ == '__main__':
       logger.info("Event with UID {uid} not found.".format(uid=uid))
       event=calendar.add_event(None)
       event.id="m2c_{uid}".format(uid=uid)
-    
+
     ical_result=ical_tools.merge(cal_base, cal_update);
-    
+
     if ical_result is not None:
       logger.debug("Saving changes for UID {uid}".format(uid=uid))
       logger.debug(ical_result.to_ical().decode("utf-8"))
@@ -67,6 +73,6 @@ if __name__ == '__main__':
       logger.debug("Deleting UID {uid}".format(uid=uid))
       if not options.dryrun:
         event.delete()
-    
+
     if not options.dryrun:
       mailfetcher.archiveMessage(mail_uid);

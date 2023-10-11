@@ -8,6 +8,11 @@ Details
 -------
 
 mail2caldav fetches all calendar events (ics files) from mails in the Inbox of an IMAP account. For each ics file it gets the UID and searches for an existing event with the same UID on the caldav server. If an event exists, it is merged with the update. Otherwise, a new event ist created on the caldav server.
+Also, there is an option that allows you to specify the depth of email scanning in days, in case you are running the application regularly. By default, all emails will be scanned.
+It is recommended to set the depth to 2 days. For example, e.g.:
+```bash
+mail2caldav --scan-depth 2
+
 
 mail2caldav should be executed reguarly (e.g. via CRON) search for new messages.
 
