@@ -21,20 +21,16 @@
 import logging
 logger = logging.getLogger("mail2caldav")
 from datetime import datetime, timedelta
-
 from m2c.imap import MailFetcher
 from m2c import ical_tools
-
 from m2c import parameter
 from m2c import config
 
 import caldav
 
-
 if __name__ == '__main__':
   options = parameter.parse()
   configdata=config.readConfig(options.configfile)
-
 
   client = caldav.DAVClient(configdata["caldav"]["url"], username=configdata["caldav"]["username"], password=configdata["caldav"]["password"])
   calendar = caldav.objects.Calendar(client=client, url=configdata["caldav"]["calendar"])
@@ -60,7 +56,6 @@ if __name__ == '__main__':
       logger.info("Event with UID {uid} not found.".format(uid=uid))
       event=calendar.add_event(None)
       event.id="m2c_{uid}".format(uid=uid)
-
     ical_result=ical_tools.merge(cal_base, cal_update);
 
     if ical_result is not None:

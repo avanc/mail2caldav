@@ -15,7 +15,6 @@ mail2caldav --scan-depth 2
 
 mail2caldav should be executed reguarly (e.g. via CRON) search for new messages.
 
-
 Nextcloud
 ---------
 Although mail2caldav should work with any caldav server, it was heavily tested with [Nextcloud](https://nextcloud.com)'s caldav server. Therefore some hints on how mail2caldav can be used with Nextcloud.

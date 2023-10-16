@@ -31,14 +31,13 @@ def parse(ics):
 def merge(cal1, cal2):
   if not cal2.has_key("METHOD"):
     raise MergeFailedError("No 'METHOD' found", cal2.to_ical())
-  
+
   if len(cal2.walk("VEVENT")) != 1:
     raise MergeFailedError("Calendar with only one VEVENT expected", cal2.to_ical())
-  
-  
+
   cal3=None;
-  
-  if cal2["METHOD"]=="REQUEST":
+
+  if cal2["METHOD"] in ["REQUEST","REPLY"]:
     cal3 = Calendar()
 
     if cal1 is None:
@@ -47,7 +46,9 @@ def merge(cal1, cal2):
     for key in cal2.keys():
       if key != "METHOD":
         cal3.add(key, cal2[key])
-        
+    for component in cal2.subcomponents:
+      if component.name == "VEVENT":
+        responder = component['ATTENDEE']
     for component in cal2.subcomponents:
       if component.name in ["VTIMEZONE"]:
         cal3.add_component(copy.deepcopy(component))
@@ -57,7 +58,7 @@ def merge(cal1, cal2):
         rid=None
         if component.has_key("RECURRENCE-ID"):
           rid = component["RECURRENCE-ID"]
-          
+
         for vevent in cal1.walk("VEVENT"):
           if isSame(vevent, uid, rid):
             if component["SEQUENCE"]>vevent["SEQUENCE"]:
@@ -67,13 +68,21 @@ def merge(cal1, cal2):
             merged=True
           else:
             cal3.add_component(copy.deepcopy(vevent))
-            
+
         if not merged:
           cal3.add_component(copy.deepcopy(component))
-          
+
+        if cal2["METHOD"] == "REPLY":
+          attendees = cal3.walk("VEVENT")[0]
+          for participant in attendees['ATTENDEE']:
+            if participant.params['EMAIL'] == responder.split(":")[1]:
+              participant.params['PARTSTAT'] = responder.params['PARTSTAT']
+              if 'SCHEDULE-STATUS' in participant.params:
+                del participant.params['SCHEDULE-STATUS']
+
       else:
         MergeFailedError("Unknown component {component}".format(component=component.name), cal2.to_ical())
-  
+
   elif cal2["METHOD"]=="CANCEL":
     vevent=cal2.walk("VEVENT")[0]
     if cal1 is None:
@@ -82,7 +91,7 @@ def merge(cal1, cal2):
     if vevent.has_key("RECURRENCE-ID"):
       uid=vevent["UID"]
       rid=vevent["RECURRENCE-ID"]
-      
+
       cal3 = Calendar()
 
       if cal1 is None:
@@ -91,12 +100,12 @@ def merge(cal1, cal2):
       for key in cal2.keys():
         if key != "METHOD":
           cal3.add(key, cal2[key])
-          
+
       for component in cal2.subcomponents:
         if component.name in ["VTIMEZONE"]:
           cal3.add_component(copy.deepcopy(component))
         elif component.name == "VEVENT":
-            
+
           for vevent in cal1.walk("VEVENT"):
             if isSame(vevent, uid, rid):
               pass
@@ -104,7 +113,7 @@ def merge(cal1, cal2):
               newcomponent=copy.deepcopy(vevent)
               if newcomponent.has_key("EXDATE"):
                 exdates=newcomponent["EXDATE"]
-                
+
                 if areEqual(component["RECURRENCE-ID"], exdates):
                   logger.info("EXDATE for {date} already exists".format(date=component["RECURRENCE-ID"].dt))
                 else:
@@ -115,25 +124,22 @@ def merge(cal1, cal2):
               cal3.add_component(newcomponent)
             else:
               cal3.add_component(copy.deepcopy(vevent))
-            
+
         else:
           MergeFailedError("Unknown component {component}".format(component=component.name), cal2.to_ical())
-      
-  
+
+
   else:
     raise MergeFailedError("Unknown method {method} found".format(method=cal2["METHOD"]), cal2.to_ical())
-  
+
   return cal3
-
-
-
 
 def isSame(vevent, uid, recurrence_id=None):
   result=False;
   if vevent["UID"] == uid:
     rid=None
     if vevent.has_key("RECURRENCE-ID"):
-      rid = vevent["RECURRENCE-ID"]   
+      rid = vevent["RECURRENCE-ID"]
     if areEqual(rid, recurrence_id):
       result=True
 
@@ -148,7 +154,7 @@ def getUid(cal):
         raise MergeFailedError("Calendar contains different UIDs", cal.to_ical())
     else:
       uid=vevent["UID"]
-    
+
     if uid is None:
       raise MergeFailedError("Calendar contains no UID", cal.to_ical())
 
@@ -161,11 +167,11 @@ def findEventByUID(cal, uid, recurrence_id=None):
     if vevent["UID"] == uid:
       rid=None
       if vevent.has_key("RECURRENCE-ID"):
-        rid = vevent["RECURRENCE-ID"]     
+        rid = vevent["RECURRENCE-ID"]
       if areEqual(rid, recurrence_id):
         if result is not None:
           raise MergeFailedError("Calendar has several VEVENTS with same UID:RECCURENEC-ID combination", cal.to_ics())
-          
+
         result=vevent
 
   return result
@@ -173,7 +179,7 @@ def findEventByUID(cal, uid, recurrence_id=None):
 def areEqual(obj1, obj2):
   import icalendar
   result=False
-  
+
   if type(obj1) == icalendar.prop.vDDDTypes:
     if type(obj2) == icalendar.prop.vDDDTypes:
       if obj1.dt == obj2.dt:
@@ -186,5 +192,5 @@ def areEqual(obj1, obj2):
             result=True
   else:
     result= (obj1 == obj2)
-    
+
   return result
