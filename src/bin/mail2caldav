@@ -62,6 +62,7 @@ if __name__ == '__main__':
       logger.debug("Saving changes for UID {uid}".format(uid=uid))
       logger.debug(ical_result.to_ical().decode("utf-8"))
       event.data=ical_result.to_ical().decode("utf-8")
+      print(ical_result.to_ical().decode("utf-8"))
       if not options.dryrun:
         event.save()
     else:
