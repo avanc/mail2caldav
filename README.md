@@ -8,9 +8,12 @@ Details
 -------
 
 mail2caldav fetches all calendar events (ics files) from mails in the Inbox of an IMAP account. For each ics file it gets the UID and searches for an existing event with the same UID on the caldav server. If an event exists, it is merged with the update. Otherwise, a new event ist created on the caldav server.
+Also, there's an option that allows you to specify the email scanning depth in days, especially if you're running the application regularly. By default, entire mailbox will be scanned, which can take time and potentially cause memory errors.
+It's recommended to set the scanning depth to 2 days, like this:
+```shell
+mail2caldav --scan-depth 2
 
 mail2caldav should be executed reguarly (e.g. via CRON) search for new messages.
-
 
 Nextcloud
 ---------

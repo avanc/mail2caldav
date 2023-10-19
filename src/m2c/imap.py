@@ -24,19 +24,20 @@ from imapclient import IMAPClient
 from . import ical_tools
 
 class MailFetcher(object):
-  def __init__(self, host, user, password, folder_inbox, folder_archive, folder_error):
+  def __init__(self, host, user, password, folder_inbox, folder_archive, folder_error, scan_depth):
     self.server=IMAPClient(host)
     self.server.login(user, password)
     self.folder_inbox=folder_inbox
     self.folder_archive=folder_archive
     self.folder_error=folder_error
-    
+    self.scan_depth=scan_depth
+
     if self.server.folder_exists(self.folder_archive):
       logger.info("Archive folder '{folder}' exists.".format(folder=self.folder_archive))
     else:
       self.server.create_folder(self.folder_archive)
       logger.info("Archive folder '{folder}' created.".format(folder=self.folder_archive))
-    
+
     if self.server.folder_exists(self.folder_error):
       logger.info("Error folder '{folder}' exists.".format(folder=self.folder_error))
     else:
@@ -50,16 +51,15 @@ class MailFetcher(object):
       logger.debug(part.get_content_type())
       if ("text/calendar" in part.get_content_type()):
         logger.info("Found calendar event in mail from {sender} with subject '{subject}'.".format(sender=email_message.get('From'), subject=email_message.get('Subject')))
-        
+
         return ical_tools.parse(part.get_payload(decode=True))
-    
+
   def getIcs(self):
     select_info = self.server.select_folder(self.folder_inbox)
     logger.debug("{num_mails} messages in folder {folder}.".format(num_mails=select_info[b'EXISTS'], folder=self.folder_inbox))
-    
+
     ics_list=[];
-    
-    messages = self.server.search('ALL')
+    messages = self.server.search(self.scan_depth)
     for message_uid, message_data in self.server.fetch(messages, 'RFC822').items():
       logger.debug("Found message with id {id}".format(id=message_uid))
       ics = self.findIcs(message_data[b'RFC822'])
@@ -67,13 +67,11 @@ class MailFetcher(object):
         ics_list.append((message_uid, ics))
     return ics_list
 
-
-
   def archiveMessage(self, uid, error=False):
     folder=self.folder_archive
     if error:
       folder=self.folder_error
-      
+
     self.server.move([uid], folder)
     logger.info("Message with UID {uid} moved to folder {folder}".format(uid=uid, folder=folder))
-    
+

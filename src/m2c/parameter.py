@@ -56,22 +56,26 @@ parser.add_argument('--log-level',
                     default="info",
                     help='Log Level: debug, info, warning, error, critical')
 
+parser.add_argument('--scan-depth',
+                    metavar=0,
+                    default="ALL",
+                    help='Mail scan depth in days')
 
 def parse(args=None):
     if args is None:
         options = parser.parse_args()
     else:
         options = parser.parse_args(args)
-    
+
     options.configfile=os.path.expanduser(options.configfile)
-    
+
     if not os.path.isfile(options.configfile):
         parser.error("No configuration file found at {0}".format(options.configfile))
-        
+
     if options.loglevel not in LOG_LEVELS.keys():
         parser.error("Log level \"{0}\" unknown".format(options.loglevel))
     logging.basicConfig(level=logging.INFO)
     logging.getLogger("m2c").setLevel(LOG_LEVELS.get(options.loglevel, logging.NOTSET))
     logging.getLogger("mail2caldav").setLevel(LOG_LEVELS.get(options.loglevel, logging.NOTSET))
-    
+
     return options
